@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Añadimos useEffect aquí
+import LandingPage from '../../components/landingPage'; // Traemos LandingPage'
 import {
   ActivityIndicator,
   Alert,
@@ -9,15 +10,11 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Login from './login';
-import HomePage from './home';
 
-type ScreenStep = 'landing' | 'form' | 'summary' | 'login' | 'home';
+type ScreenStep = 'landing' | 'form' | 'summary';
 
 type RegisteredUser = {
   id?: number;
@@ -25,16 +22,25 @@ type RegisteredUser = {
   email: string;
 };
 
-const API_BASE_URL = 'http://192.168.1.9:8088';
+const API_BASE_URL = '192.168.100.3:8088';
 
 export default function HomeScreen() {
+  const [isAppReady, setIsAppReady] = useState(false); // Estado para la pantalla de carga
+  // Espera 3 segundos y luego muestra el resto
+  useEffect(() => {
+    const prepararApp = async () => {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setIsAppReady(true);
+    };
+    prepararApp();
+  }, []);
+
   const [step, setStep] = useState<ScreenStep>('landing');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
 
   async function addUser() {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -46,7 +52,9 @@ export default function HomeScreen() {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/user/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
@@ -54,7 +62,9 @@ export default function HomeScreen() {
         }),
       });
 
-      if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
 
       const payload = await response.json();
       const userId = typeof payload === 'number' ? payload : payload?.id;
@@ -68,10 +78,7 @@ export default function HomeScreen() {
       setName('');
       setEmail('');
       setPassword('');
-
-      Alert.alert('Success', 'Account created! Now please log in.');
-      setStep('login');
-
+      setStep('summary');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Registration error', message);
@@ -80,124 +87,100 @@ export default function HomeScreen() {
     }
   }
 
+  // Si no está lista, devolvemos pantalla de carga
+  if (!isAppReady) {
+    return <LandingPage />;
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#D9D9D9' }}> 
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
+      <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
-          
           {step === 'landing' && (
-            <View style={styles.formContainer}>
+            <>
               <ThemedText style={styles.title}>Welcome to upBeat</ThemedText>
-              <TouchableOpacity style={styles.mainButton} onPress={() => setStep('form')}>
-                <ThemedText style={styles.buttonText}>Get Started</ThemedText>
+              <ThemedText style={styles.subtitle}>Start by creating your account</ThemedText>
+
+              <TouchableOpacity style={styles.button} onPress={() => setStep('form')}>
+                <ThemedText style={styles.buttonText}>Register</ThemedText>
               </TouchableOpacity>
-            </View>
+            </>
           )}
 
           {step === 'form' && (
             <>
-              <View style={styles.header}>
-                <Image 
-                  source={require('../../assets/images/logoUpBeat.png')}
-                  style={styles.logo} 
-                  resizeMode="contain"
-                />
-              </View>
+              <ThemedText style={styles.title}>Create Account</ThemedText>
+              <ThemedText style={styles.subtitle}>Register a new user in upBeat</ThemedText>
 
-              <View style={styles.formContainer}>
-                <ThemedText style={styles.title}>Create your account!</ThemedText>
-                <ThemedText style={styles.subtitle}>Start taking care of your body today</ThemedText>
+              <TextInput
+                placeholder="Full name"
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                autoCapitalize="words"
+              />
 
-                <ThemedText style={styles.label}>Username</ThemedText>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={styles.inputStyle}
-                    placeholder="Your name"
-                    value={name}
-                    onChangeText={setName}
-                    placeholderTextColor="#999"
-                  />
-                  <MaterialCommunityIcons name="account" size={24} color="#555" />
-                </View>
+              <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
 
-                <ThemedText style={styles.label}>Email</ThemedText>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={styles.inputStyle}
-                    placeholder="example@mail.com"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor="#999"
-                  />
-                  <MaterialCommunityIcons name="email-outline" size={24} color="#555" />
-                </View>
+              <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+                secureTextEntry
+              />
 
-                <ThemedText style={styles.label}>Password</ThemedText>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={styles.inputStyle}
-                    placeholder="********"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword} 
-                    placeholderTextColor="#999"
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <MaterialCommunityIcons 
-                      name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                      size={24} 
-                      color="#555" 
-                    />
-                  </TouchableOpacity>
-                </View>
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={addUser}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={styles.buttonText}>Save and Continue</ThemedText>
+                )}
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.mainButton, loading && styles.disabledButton]}
-                  onPress={addUser}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#000" />
-                  ) : (
-                    <ThemedText style={styles.buttonText}>Create account</ThemedText>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setStep('login')}>
-                  <ThemedText style={styles.linkText}>Already have an account?</ThemedText>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => setStep('landing')}>
+                <ThemedText style={styles.secondaryButtonText}>Back</ThemedText>
+              </TouchableOpacity>
             </>
           )}
 
-          {step === 'login' && (
-            <Login 
-              onLoginSuccess={(user: RegisteredUser) => {
-                setRegisteredUser(user);
-                setStep('home');
-              }}
-              onGoToRegister={() => setStep('form')}
-            />
-          )}
-          
-          {step === 'home' && (
-            <HomePage 
-              user={registeredUser} 
-              onLogout={() => setStep('landing')} 
-            />
-          )}
+          {step === 'summary' && registeredUser && (
+            <>
+              <ThemedText style={styles.title}>Registered User</ThemedText>
+              <ThemedText style={styles.subtitle}>This is the information you just saved</ThemedText>
 
+              <View style={styles.card}>
+                {typeof registeredUser.id === 'number' && (
+                  <ThemedText style={styles.cardText}>ID: {registeredUser.id}</ThemedText>
+                )}
+                <ThemedText style={styles.cardText}>Name: {registeredUser.name}</ThemedText>
+                <ThemedText style={styles.cardText}>Email: {registeredUser.email}</ThemedText>
+              </View>
+
+              <TouchableOpacity style={styles.button} onPress={() => setStep('landing')}>
+                <ThemedText style={styles.buttonText}>Finish</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => setStep('form')}>
+                <ThemedText style={styles.secondaryButtonText}>Register Another User</ThemedText>
+              </TouchableOpacity>
+            </>
+          )}
         </ScrollView>
-      </KeyboardAvoidingView>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -206,91 +189,68 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E9E9EF',
   },
   contentContainer: {
-    flexGrow: 1,
-  },
-  header: {
-    height: 150,
-    backgroundColor: '#D9D9D9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? -50 : 0, 
-    paddingTop: Platform.OS === 'ios' ? 50 : 0,
-  },
-  logo: {
-    width: 150,
-    height: 80,
-  },
-  formContainer: {
-    paddingHorizontal: 30,
-    alignItems: 'center',
-    paddingBottom: 40,
+    padding: 20,
+    gap: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 25,
-    color: '#000',
-    textAlign: 'center',
+    fontWeight: '800',
+    fontSize: 28,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 30,
-    textAlign: 'center',
+    fontSize: 15,
+    opacity: 0.75,
+    marginBottom: 10,
   },
-  label: {
-    alignSelf: 'flex-start',
-    fontWeight: '600',
-    marginBottom: 5,
-    fontSize: 14,
-    color: '#333',
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D5D8E2',
+    padding: 14,
+    gap: 8,
+    marginBottom: 8,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D9D9D9', 
-    opacity: 0.35,
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    height: 55,
-    width: '100%',
-  },
-  inputStyle: {
-    flex: 1,
+  cardText: {
     fontSize: 16,
-    color: '#000',
-    height: '100%',
+    fontWeight: '600',
   },
-  mainButton: {
-    backgroundColor: '#2C99FF',
-    width: '100%',
-    height: 60,
-    borderRadius: 20,
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#D5D8E2',
+  },
+  button: {
+    marginTop: 6,
+    backgroundColor: '#1D4ED8',
+    borderRadius: 12,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 30,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
-  disabledButton: {
-    opacity: 0.7,
+  buttonDisabled: {
+    opacity: 0.65,
   },
   buttonText: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
-  linkText: {
-    color: '#9901BF',
-    marginTop: 20,
-    textDecorationLine: 'underline',
-    fontWeight: '500',
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: '#1D4ED8',
+    borderRadius: 12,
+    minHeight: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#1D4ED8',
+    fontWeight: '700',
   },
 });

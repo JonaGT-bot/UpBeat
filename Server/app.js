@@ -4,13 +4,14 @@ import {
     getUserById,
     addUser,
     deleteUser,
-    getUserByEmail
+    getUserByEmail,
+    updateUser,
 } from "./database.js";
 
 import cors from 'cors';
 const corsOption= {
-    origin: "http://127.0.0.1:5173",
-    method: ["POST", "GET"],
+    origin: "*",
+    methods: ["POST", "GET", "PUT", "DELETE"],
     credentials: true,
 };
 
@@ -24,12 +25,12 @@ app.get("/perfil/:id", async (req,res)=>{
     res.status(200).send(user);
 });
 
-app.delete("/user/:id",async (req,res)=> {
+app.delete("/ususario/:id",async (req,res)=> {
     await deleteUser(req.params.id);
     res.send({message: "User deleted succesfully"});
 });
 
-app.post("/user/register", async (req, res)=> {
+app.post("/usuario/registro", async (req, res)=> {
     const  {name, email, password} = req.body;
     const user = await addUser(name,email,password);
     res.status(201).send(user);
@@ -39,22 +40,18 @@ app.listen(process.env.WEB_PORT, ()=> {
     console.log(`Server running on port ${process.env.WEB_PORT}`)
 });
 
-app.post("/user/login", async (req, res) => {
-    const { email, password } = req.body;
-    
-    const user = await getUserByEmail(email);
-
-    if (!user) {
-        return res.status(404).send({ message: "User not found" });
-    }
-
-    if (user.password === password) {
-        res.status(200).send({
-            message: "Login successful",
-            user: { id: user.id, name: user.name, email: user.email }
-        });
-    } else {
-        res.status(401).send({ message: "Wrong Password" });
+app.put("/user/update/:id", async (req, res) => {
+    const { name, password } = req.body;
+    const userId = req.params.id;
+    try {
+        // Aquí le pedimos a la base de datos que cambie los datos
+        // (Asegúrate de que tu compañero añada 'updateUser' en database.js)
+        await pool.query(
+            `UPDATE users SET name = ?, password = ? WHERE id = ?`,
+            [name, password, userId]
+        );
+        res.status(200).send({ message: "¡Perfil actualizado con éxito!" });
+    } catch (error) {
+        res.status(500).send({ message: "Error al actualizar" });
     }
 });
-
