@@ -44,5 +44,13 @@ export async function deleteUser(id){
 
     return result;
 
-    
+}
+
+export async function updateUser(id, name, password) {
+    // Usamos UPDATE para modificar los registros existentes
+    const [result] = await pool.query(
+        `UPDATE users SET name = ?, password = ? WHERE id = ?`,
+        [name, password, id]
+    );
+    return result; // Retornamos el resultado de la operación
 }
