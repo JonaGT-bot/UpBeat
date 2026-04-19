@@ -39,4 +39,22 @@ app.listen(process.env.WEB_PORT, ()=> {
     console.log(`Server running on port ${process.env.WEB_PORT}`)
 });
 
+app.post("/user/login", async (req, res) => {
+    const { email, password } = req.body;
+    
+    const user = await getUserByEmail(email);
+
+    if (!user) {
+        return res.status(404).send({ message: "User not found" });
+    }
+
+    if (user.password === password) {
+        res.status(200).send({
+            message: "Login successful",
+            user: { id: user.id, name: user.name, email: user.email }
+        });
+    } else {
+        res.status(401).send({ message: "Wrong Password" });
+    }
+});
 
