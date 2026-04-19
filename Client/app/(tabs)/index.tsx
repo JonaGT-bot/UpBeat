@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Añadimos useEffect aquí
+import LandingPage from '../../components/landingPage'; // Traemos LandingPage'
 import {
   ActivityIndicator,
   Alert,
@@ -21,9 +22,19 @@ type RegisteredUser = {
   email: string;
 };
 
-const API_BASE_URL = 'http://192.168.100.95:8088';
+const API_BASE_URL = '192.168.100.3:8088';
 
 export default function HomeScreen() {
+  const [isAppReady, setIsAppReady] = useState(false); // Estado para la pantalla de carga
+  // Espera 3 segundos y luego muestra el resto
+  useEffect(() => {
+    const prepararApp = async () => {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setIsAppReady(true);
+    };
+    prepararApp();
+  }, []);
+
   const [step, setStep] = useState<ScreenStep>('landing');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -74,6 +85,11 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Si no está lista, devolvemos pantalla de carga
+  if (!isAppReady) {
+    return <LandingPage />;
   }
 
   return (
